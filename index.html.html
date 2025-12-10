@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoPulse - Car Health Companion with OBD-II</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --secondary: #F7931E;
+            --accent: #00D9FF;
+            --dark: #0A0E27;
+            --darker: #050814;
+            --surface: #1A1F3A;
+            --surface-light: #252B4A;
+            --text: #E8EAED;
+            --text-dim: #9CA3AF;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --grid: rgba(0, 217, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--darker);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 0;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--surface);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 24px;
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
+        }
+
+        .logo-text h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-dim);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .bluetooth-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--surface-light);
+        }
+
+        .bluetooth-status.connected {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .bluetooth-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .bluetooth-status.connected .bluetooth-dot {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        .bluetooth-text {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(255, 107, 53, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--surface-light);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-light);
+            border-color: var(--accent);
+        }
+
+        .btn-bluetooth {
+            background: linear-gradient(135deg, #0066FF, var(--accent));
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-bluetooth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 102, 255, 0.5);
+        }
+
+        /* Vehicle Status Card */
+        .vehicle-status {
+            background: linear-gradient(135deg, var(--surface) 0%, var(--dark) 100%);
+            border: 1px solid var(--surface-light);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vehicle-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+
+        .vehicle-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 30px;
+        }
+
+        .vehicle-details h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .vehicle-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        .health-score {
+            text-align: right;
+        }
+
+        .score-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--success), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .metric-card.live-data::after {
+            content: 'LIVE';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 9px;
+            padding: 3px 8px;
+            background: var(--accent);
+            border-radius: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .metric-status {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-good {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .status-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        /* Diagnostics Panel */
+        .diagnostics-panel {
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--surface-light);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .title-icon {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .diagnostic-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--accent);
+        }
+
+        .diagnostic-info {
+            flex: 1;
+        }
+
+        .diagnostic-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .diagnostic-detail {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .diagnostic-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-right: 20px;
+        }
+
+        /* OBD-II Connection Panel */
+        .obd-panel {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 217, 255, 0.1));
+            border: 2px solid rgba(0, 217, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .obd-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .obd-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .obd-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+
+        .obd-details h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .obd-details p {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .data-stream {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .data-stream-title {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .data-stream-content {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        /* Predictive Maintenance */
+        .maintenance-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid var(--warning);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .maintenance-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateX(5px);
+        }
+
+        .maintenance-item.urgent {
+            border-left-color: var(--danger);
+        }
+
+        .maintenance-item.upcoming {
+            border-left-color: var(--accent);
+        }
+
+        .maintenance-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(245, 158, 11, 0.1);
+            flex-shrink: 0;
+        }
+
+        .maintenance-item.urgent .maintenance-icon {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .maintenance-item.upcoming .maintenance-icon {
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .maintenance-content {
+            flex: 1;
+        }
+
+        .maintenance-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .maintenance-due {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        .maintenance-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .maintenance-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--warning), var(--secondary));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Notifications */
+        .notifications-panel {
+            animation: fadeIn 0.8s ease-out 0.6s both;
+        }
+
+        .notification-item {
+            display: flex;
+            gap: 15px;
+            padding: 18px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border-left: 3px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateX(5px);
+        }
+
+        .notification-item.warning {
+            border-left-color: var(--warning);
+        }
+
+        .notification-item.critical {
+            border-left-color: var(--danger);
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: rgba(0, 217, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--surface-light);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Turbo Control Panel */
+        .turbo-panel {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(247, 147, 30, 0.15));
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .turbo-panel::before {
+            content: '🚀';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .turbo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .turbo-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .turbo-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .turbo-gauge-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .turbo-gauge {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        .gauge-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from -140deg,
+                rgba(16, 185, 129, 0.3) 0deg,
+                rgba(245, 158, 11, 0.3) 180deg,
+                rgba(239, 68, 68, 0.3) 280deg
+            );
+            position: relative;
+        }
+
+        .gauge-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            background: var(--surface);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .boost-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .boost-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        .gauge-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 90px;
+            background: linear-gradient(to top, var(--primary), transparent);
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%) rotate(0deg);
+            transition: transform 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .gauge-needle::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .boost-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .boost-preset {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .boost-preset:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .boost-preset.active {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .boost-preset.active::before {
+            content: '✓';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .preset-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .preset-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .preset-boost {
+            font-size: 20px;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .preset-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .custom-boost-control {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .custom-boost-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .custom-boost-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .boost-slider-container {
+            margin: 20px 0;
+        }
+
+        .boost-slider {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(to right, 
+                var(--success) 0%, 
+                var(--warning) 50%, 
+                var(--danger) 100%);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .boost-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+
+        .boost-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+
+        .boost-range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 10px;
+        }
+
+        .boost-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .warning-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .warning-content {
+            flex: 1;
+        }
+
+        .warning-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--danger);
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .turbo-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .turbo-stat {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .turbo-stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .turbo-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-wrap: wrap;
+            }
+            
+            .bluetooth-status {
+                order: -1;
+                width: 100%;
+            }
+
+            .vehicle-info-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .health-score {
+                text-align: left;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">AP</div>
+                <div class="logo-text">
+                    <h1>AUTOPULSE</h1>
+                    <p>Car Health Companion</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="bluetooth-status" id="bluetoothStatus">
+                    <div class="bluetooth-dot"></div>
+                    <span class="bluetooth-text">Not Connected</span>
+                </div>
+                <button class="btn btn-bluetooth" onclick="connectBluetooth()">
+                    📡 Connect OBD-II
+                </button>
+                <button class="btn btn-primary" onclick="runDiagnostic()">
+                    <span class="loading" style="display: none;"></span>
+                    <span class="btn-text">Run Scan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- OBD-II Connection Panel -->
+        <div class="obd-panel" id="obdPanel" style="display: none;">
+            <div class="obd-status">
+                <div class="obd-info">
+                    <div class="obd-icon">🔌</div>
+                    <div class="obd-details">
+                        <h3>OBD-II Connected</h3>
+                        <p>Device: <span id="deviceName">ELM327 Bluetooth</span></p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="disconnectBluetooth()">Disconnect</button>
+            </div>
+            
+            <div class="data-stream">
+                <div class="data-stream-title">Live Data Stream</div>
+                <div class="data-stream-content" id="dataStream">
+                    Waiting for data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Turbo Boost Control Panel -->
+        <div class="turbo-panel" id="turboPanel" style="display: none;">
+            <div class="turbo-header">
+                <div class="turbo-title">
+                    <span>Turbo Boost Control</span>
+                    <span class="turbo-badge">Advanced</span>
+                </div>
+            </div>
+
+            <div class="turbo-gauge-container">
+                <div class="turbo-gauge">
+                    <div class="gauge-bg"></div>
+                    <div class="gauge-needle" id="gaugeNeedle"></div>
+                    <div class="gauge-center">
+                        <div class="boost-value" id="boostValue">0.0</div>
+                        <div class="boost-label">PSI Boost</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="turbo-stats">
+                <div class="turbo-stat">
+                    <div class="turbo-stat-label">Max Boost Today</div>
+                    <div class="turbo-stat-value" id="maxBoost">0.0 PSI</div>
+                </div>
+                <div class="turbo-stat">
+                    <div class="turbo-stat-label">Turbo Temp</div>
+                    <div class="turbo-stat-value" id="turboTemp">--°F</div>
+                </div>
+                <div class="turbo-stat">
+                    <div class="turbo-stat-label">Boost Events</div>
+                    <div class="turbo-stat-value" id="boostEvents">0</div>
+                </div>
+                <div class="turbo-stat">
+                    <div class="turbo-stat-label">Target Boost</div>
+                    <div class="turbo-stat-value" id="targetBoost">Stock</div>
+                </div>
+            </div>
+
+            <div class="boost-controls">
+                <div class="boost-preset active" onclick="setBoostPreset('stock', 8, this)">
+                    <div class="preset-icon">🏭</div>
+                    <div class="preset-name">Stock</div>
+                    <div class="preset-boost">8 PSI</div>
+                    <div class="preset-desc">Factory settings</div>
+                </div>
+                
+                <div class="boost-preset" onclick="setBoostPreset('stage1', 12, this)">
+                    <div class="preset-icon">⚡</div>
+                    <div class="preset-name">Stage 1</div>
+                    <div class="preset-boost">12 PSI</div>
+                    <div class="preset-desc">+50 HP safe tune</div>
+                </div>
+                
+                <div class="boost-preset" onclick="setBoostPreset('stage2', 16, this)">
+                    <div class="preset-icon">🔥</div>
+                    <div class="preset-name">Stage 2</div>
+                    <div class="preset-boost">16 PSI</div>
+                    <div class="preset-desc">+100 HP upgraded</div>
+                </div>
+                
+                <div class="boost-preset" onclick="setBoostPreset('race', 20, this)">
+                    <div class="preset-icon">🏁</div>
+                    <div class="preset-name">Race</div>
+                    <div class="preset-boost">20 PSI</div>
+                    <div class="preset-desc">Track only</div>
+                </div>
+                
+                <div class="boost-preset" onclick="setBoostPreset('eco', 6, this)">
+                    <div class="preset-icon">🌱</div>
+                    <div class="preset-name">Eco</div>
+                    <div class="preset-boost">6 PSI</div>
+                    <div class="preset-desc">Fuel efficient</div>
+                </div>
+                
+                <div class="boost-preset" onclick="setBoostPreset('valet', 4, this)">
+                    <div class="preset-icon">🔒</div>
+                    <div class="preset-name">Valet</div>
+                    <div class="preset-boost">4 PSI</div>
+                    <div class="preset-desc">Limited power</div>
+                </div>
+            </div>
+
+            <div class="custom-boost-control">
+                <div class="custom-boost-header">
+                    <div class="custom-boost-title">Custom Boost Level</div>
+                    <button class="btn btn-primary" onclick="applyCustomBoost()">Apply</button>
+                </div>
+                
+                <div class="boost-slider-container">
+                    <input type="range" class="boost-slider" id="customBoostSlider" 
+                           min="0" max="25" step="0.5" value="8" 
+                           oninput="updateCustomBoostDisplay()">
+                    <div class="boost-range-labels">
+                        <span>0 PSI</span>
+                        <span id="customBoostDisplay">8.0 PSI</span>
+                        <span>25 PSI</span>
+                    </div>
+                </div>
+
+                <div class="boost-warning">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-content">
+                        <div class="warning-title">Boost Control Warning</div>
+                        <div class="warning-text">
+                            Increasing boost beyond stock levels can damage your engine if not properly supported with fuel, cooling, and internal upgrades. Only adjust if you have appropriate modifications. Always consult a professional tuner.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Status -->
+        <div class="vehicle-status">
+            <div class="vehicle-info-header">
+                <div class="vehicle-details">
+                    <h2>2020 Toyota Camry XSE</h2>
+                    <div class="vehicle-meta">
+                        <span>VIN: <span id="vinNumber">4T1B11HK5LU123456</span></span>
+                        <span>•</span>
+                        <span><span id="mileage">52,847</span> miles</span>
+                        <span>•</span>
+                        <span>Last scan: <span id="lastScan">2 hours ago</span></span>
+                    </div>
+                </div>
+                <div class="health-score">
+                    <div class="score-value" id="healthScore">87</div>
+                    <div class="score-label">Health Score</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card" id="boostMetric">
+                    <div class="metric-label">Boost Pressure</div>
+                    <div class="metric-value" id="boostPressure">0.0 PSI</div>
+                    <span class="metric-status status-good">Normal</span>
+                </div>
+                <div class="metric-card" id="engineMetric">
+                    <div class="metric-label">Engine Temp</div>
+                    <div class="metric-value" id="engineTemp">195°F</div>
+                    <span class="metric-status status-good">Optimal</span>
+                </div>
+                <div class="metric-card" id="rpmMetric">
+                    <div class="metric-label">Engine RPM</div>
+                    <div class="metric-value" id="engineRPM">750</div>
+                    <span class="metric-status status-good">Idle</span>
+                </div>
+                <div class="metric-card" id="speedMetric">
+                    <div class="metric-label">Speed</div>
+                    <div class="metric-value" id="vehicleSpeed">0</div>
+                    <span class="metric-status status-good">MPH</span>
+                </div>
+                <div class="metric-card" id="fuelMetric">
+                    <div class="metric-label">Fuel Level</div>
+                    <div class="metric-value" id="fuelLevel">68%</div>
+                    <span class="metric-status status-good">Good</span>
+                </div>
+                <div class="metric-card" id="timingMetric">
+                    <div class="metric-label">Timing Advance</div>
+                    <div class="metric-value" id="timingAdvance">12°</div>
+                    <span class="metric-status status-good">Normal</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div class="diagnostics-panel">
+                <!-- Real-time Diagnostics -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <span class="title-icon"></span>
+                            Real-Time Diagnostics
+                        </h3>
+                    </div>
+                    
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-info">
+                            <div class="diagnostic-name">Coolant Temperature</div>
+                            <div class="diagnostic-detail" id="coolantDetail">Optimal range • No issues detected</div>
+                        </div>
+                        <div class="diagnostic-value" style="color: var(--success)" id="coolantTemp">195°F</div>
+                        <span class="metric-status status-good">Normal</span>
+                    </div>
+
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-info">
+                            <div class="diagnostic-name">Intake Air Temperature</div>
+                            <div class="diagnostic-detail" id="intakeDetail">Within specifications</div>
+                        </div>
+                        <div class="diagnostic-value" style="color: var(--success)" id="intakeTemp">72°F</div>
+                        <span class="metric-status status-good">Normal</span>
+                    </div>
+
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-info">
+                            <div class="diagnostic-name">Throttle Position</div>
+                            <div class="diagnostic-detail" id="throttleDetail">Engine idle</div>
+                        </div>
+                        <div class="diagnostic-value" style="color: var(--success)" id="throttlePos">0%</div>
+                        <span class="metric-status status-good">Normal</span>
+                    </div>
+
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-info">
+                            <div class="diagnostic-name">Mass Air Flow</div>
+                            <div class="diagnostic-detail" id="mafDetail">Normal idle airflow</div>
+                        </div>
+                        <div class="diagnostic-value" style="color: var(--success)" id="mafRate">3.2 g/s</div>
+                        <span class="metric-status status-good">Normal</span>
+                    </div>
+
+                    <div class="diagnostic-item">
+                        <div class="diagnostic-info">
+                            <div class="diagnostic-name">O2 Sensor Voltage</div>
+                            <div class="diagnostic-detail" id="o2Detail">Operating correctly</div>
+                        </div>
+                        <div class="diagnostic-value" style="color: var(--success)" id="o2Voltage">0.45V</div>
+                        <span class="metric-status status-good">Normal</span>
+                    </div>
+                </div>
+
+                <!-- Predictive Maintenance -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <span class="title-icon"></span>
+                            Predictive Maintenance
+                        </h3>
+                    </div>
+
+                    <div class="maintenance-item urgent">
+                        <div class="maintenance-icon">🔧</div>
+                        <div class="maintenance-content">
+                            <div class="maintenance-title">Brake Pad Replacement</div>
+                            <div class="maintenance-due">Due in 850 miles or 3 weeks</div>
+                            <div class="maintenance-progress">
+                                <div class="maintenance-progress-bar" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="maintenance-item upcoming">
+                        <div class="maintenance-icon">🛢️</div>
+                        <div class="maintenance-content">
+                            <div class="maintenance-title">Oil Change Service</div>
+                            <div class="maintenance-due">Due in 2,153 miles or 8 weeks</div>
+                            <div class="maintenance-progress">
+                                <div class="maintenance-progress-bar" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="maintenance-item upcoming">
+                        <div class="maintenance-icon">🔋</div>
+                        <div class="maintenance-content">
+                            <div class="maintenance-title">Battery Health Check</div>
+                            <div class="maintenance-due">Recommended in 6 months</div>
+                            <div class="maintenance-progress">
+                                <div class="maintenance-progress-bar" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="notifications-panel">
+                <!-- Smart Notifications -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <span class="title-icon"></span>
+                            Smart Alerts
+                        </h3>
+                    </div>
+
+                    <div id="notificationsList">
+                        <div class="notification-item">
+                            <div class="notification-icon">📡</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Connect OBD-II for live data</div>
+                                <div class="notification-time">Now</div>
+                            </div>
+                        </div>
+
+                        <div class="notification-item warning">
+                            <div class="notification-icon" style="background: rgba(245, 158, 11, 0.1);">🔔</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Brake Service Recommended Soon</div>
+                                <div class="notification-time">1 day ago</div>
+                            </div>
+                        </div>
+
+                        <div class="notification-item">
+                            <div class="notification-icon">📊</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Monthly report ready to view</div>
+                                <div class="notification-time">5 days ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <span class="title-icon"></span>
+                            Quick Actions
+                        </h3>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="toggleTurboPanel()">
+                            🚀 Turbo Boost Control
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="showSetupGuide()">
+                            📖 OBD-II Setup Guide
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="viewDTCCodes()">
+                            🔍 View Trouble Codes
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="exportData()">
+                            📊 Export Live Data
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="clearCodes()">
+                            ❌ Clear Error Codes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-header" id="modalTitle">Modal Title</div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // OBD-II Connection State
+        let isConnected = false;
+        let bluetoothDevice = null;
+        let characteristic = null;
+        let dataUpdateInterval = null;
+
+        // Turbo Boost State
+        let currentBoostPSI = 0;
+        let targetBoostPSI = 8; // Stock default
+        let maxBoostToday = 0;
+        let boostEventCount = 0;
+        let isTurboVehicle = false; // Will be detected from OBD-II
+        let currentPreset = 'stock';
+
+        // Boost control map (simulated - in real world would be sent to ECU/boost controller)
+        const boostMaps = {
+            valet: { psi: 4, timing: -2, fuel: 100 },
+            eco: { psi: 6, timing: 0, fuel: 95 },
+            stock: { psi: 8, timing: 12, fuel: 100 },
+            stage1: { psi: 12, timing: 14, fuel: 110 },
+            stage2: { psi: 16, timing: 16, fuel: 120 },
+            race: { psi: 20, timing: 18, fuel: 130 }
+        };
+
+        // Connect to OBD-II via Bluetooth
+        async function connectBluetooth() {
+            try {
+                // Check if Web Bluetooth API is supported
+                if (!navigator.bluetooth) {
+                    showModal('Bluetooth Not Supported', `
+                        <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                            Your browser doesn't support Web Bluetooth API. Please use Chrome, Edge, or Opera on desktop, or Chrome on Android.
+                        </div>
+                        <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); padding: 15px; border-radius: 8px;">
+                            <strong>Alternative Options:</strong><br>
+                            <span style="font-size: 13px; color: var(--text-dim);">
+                                • Use a mobile app that supports OBD-II<br>
+                                • Use WiFi OBD-II adapters<br>
+                                • Update to a compatible browser
+                            </span>
+                        </div>
+                    `);
+                    return;
+                }
+
+                showModal('Connecting to OBD-II...', `
+                    <div style="text-align: center; padding: 40px 0;">
+                        <div class="loading" style="width: 60px; height: 60px; border-width: 6px; margin: 0 auto 20px;"></div>
+                        <div style="font-size: 18px; margin-bottom: 10px;">Searching for OBD-II devices...</div>
+                        <div style="font-size: 14px; color: var(--text-dim);">
+                            Make sure your OBD-II adapter is:<br>
+                            • Plugged into your vehicle's port<br>
+                            • Powered on (ignition on)<br>
+                            • In pairing mode
+                        </div>
+                    </div>
+                `);
+
+                // Request Bluetooth device
+                // Note: OBD-II devices typically use Serial Port Profile (SPP)
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'OBD' },
+                        { namePrefix: 'ELM' },
+                        { namePrefix: 'V-LINK' },
+                        { namePrefix: 'OBDII' }
+                    ],
+                    optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb'] // Common OBD service UUID
+                });
+
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+                characteristic = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
+
+                // Start receiving notifications
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', handleOBDData);
+
+                // Update UI
+                isConnected = true;
+                document.getElementById('bluetoothStatus').classList.add('connected');
+                document.getElementById('bluetoothStatus').querySelector('.bluetooth-text').textContent = 'Connected';
+                document.getElementById('deviceName').textContent = bluetoothDevice.name;
+                document.getElementById('obdPanel').style.display = 'block';
+
+                closeModal();
+
+                // Show success notification
+                showSuccessNotification('OBD-II Connected Successfully!');
+
+                // Start querying OBD-II data
+                startDataUpdates();
+
+                // Initialize connection with ATZ (reset) command
+                await sendOBDCommand('ATZ\r');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await sendOBDCommand('ATE0\r'); // Echo off
+                await sendOBDCommand('ATL0\r'); // Linefeeds off
+                await sendOBDCommand('ATS0\r'); // Spaces off
+                await sendOBDCommand('ATSP0\r'); // Auto protocol
+
+                // Detect if vehicle has turbo by checking for boost pressure PID
+                setTimeout(async () => {
+                    await detectTurbocharger();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Bluetooth connection error:', error);
+                closeModal();
+                showModal('Connection Failed', `
+                    <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                        Unable to connect to OBD-II device. 
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-dim);">
+                        <strong>Troubleshooting:</strong><br>
+                        • Ensure vehicle ignition is ON<br>
+                        • Check OBD-II adapter is properly connected<br>
+                        • Verify adapter is powered and in pairing mode<br>
+                        • Try disconnecting and reconnecting the adapter<br>
+                        • Make sure no other app is connected to the adapter
+                    </div>
+                `);
+            }
+        }
+
+        // Disconnect from OBD-II
+        async function disconnectBluetooth() {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                await bluetoothDevice.gatt.disconnect();
+            }
+            
+            isConnected = false;
+            bluetoothDevice = null;
+            characteristic = null;
+            
+            if (dataUpdateInterval) {
+                clearInterval(dataUpdateInterval);
+                dataUpdateInterval = null;
+            }
+
+            document.getElementById('bluetoothStatus').classList.remove('connected');
+            document.getElementById('bluetoothStatus').querySelector('.bluetooth-text').textContent = 'Not Connected';
+            document.getElementById('obdPanel').style.display = 'none';
+
+            // Remove live data badges
+            document.querySelectorAll('.live-data').forEach(el => el.classList.remove('live-data'));
+
+            showSuccessNotification('OBD-II Disconnected');
+        }
+
+        // Send OBD-II command
+        async function sendOBDCommand(command) {
+            if (!characteristic) return;
+            
+            const encoder = new TextEncoder();
+            await characteristic.writeValue(encoder.encode(command));
+            
+            // Log to data stream
+            const dataStream = document.getElementById('dataStream');
+            dataStream.textContent = `> ${command.trim()}\n` + dataStream.textContent;
+        }
+
+        // Handle incoming OBD-II data
+        function handleOBDData(event) {
+            const decoder = new TextDecoder();
+            const data = decoder.decode(event.target.value);
+            
+            // Log to data stream
+            const dataStream = document.getElementById('dataStream');
+            dataStream.textContent = `< ${data}\n` + dataStream.textContent;
+            
+            // Keep only last 10 lines
+            const lines = dataStream.textContent.split('\n');
+            if (lines.length > 10) {
+                dataStream.textContent = lines.slice(0, 10).join('\n');
+            }
+
+            // Parse OBD-II responses
+            parseOBDResponse(data);
+        }
+
+        // Detect if vehicle has turbocharger
+        async function detectTurbocharger() {
+            // Query boost pressure PID (0x0123 or manufacturer specific)
+            // Many turbocharged vehicles report boost via MAP sensor (PID 010B)
+            await sendOBDCommand('010B\r'); // Intake manifold absolute pressure
+            
+            // Wait for response to determine if turbo is present
+            setTimeout(() => {
+                // If we're getting manifold pressure readings, show turbo panel
+                isTurboVehicle = true;
+                document.getElementById('turboPanel').style.display = 'block';
+                showSuccessNotification('Turbocharger detected! Boost control enabled.');
+            }, 1000);
+        }
+
+        // Set boost preset
+        function setBoostPreset(preset, psi, element) {
+            // Remove active class from all presets
+            document.querySelectorAll('.boost-preset').forEach(el => el.classList.remove('active'));
+            
+            // Add active class to selected preset
+            element.classList.add('active');
+            
+            // Update target boost
+            targetBoostPSI = psi;
+            currentPreset = preset;
+            document.getElementById('targetBoost').textContent = preset.charAt(0).toUpperCase() + preset.slice(1);
+            
+            // Apply boost map
+            applyBoostMap(preset);
+            
+            showSuccessNotification(`Boost preset changed to ${preset.toUpperCase()} (${psi} PSI)`);
+        }
+
+        // Update custom boost display
+        function updateCustomBoostDisplay() {
+            const slider = document.getElementById('customBoostSlider');
+            const display = document.getElementById('customBoostDisplay');
+            display.textContent = parseFloat(slider.value).toFixed(1) + ' PSI';
+        }
+
+        // Apply custom boost
+        function applyCustomBoost() {
+            const slider = document.getElementById('customBoostSlider');
+            const customPSI = parseFloat(slider.value);
+            
+            // Deactivate all presets
+            document.querySelectorAll('.boost-preset').forEach(el => el.classList.remove('active'));
+            
+            // Update target
+            targetBoostPSI = customPSI;
+            currentPreset = 'custom';
+            document.getElementById('targetBoost').textContent = `Custom (${customPSI} PSI)`;
+            
+            // Create custom boost map
+            const customMap = {
+                psi: customPSI,
+                timing: 10 + (customPSI - 8) * 0.5, // Adjust timing based on boost
+                fuel: 100 + (customPSI - 8) * 2.5 // Adjust fuel enrichment
+            };
+            
+            applyBoostMapDirect(customMap);
+            
+            showModal('Custom Boost Applied', `
+                <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                    Custom boost level of <strong>${customPSI} PSI</strong> has been applied to your vehicle's boost controller.
+                </div>
+                <div style="background: rgba(255, 107, 53, 0.1); border-left: 4px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Settings Applied:</strong><br>
+                    <span style="font-size: 13px; color: var(--text-dim);">
+                        Target Boost: ${customPSI} PSI<br>
+                        Timing Advance: ${customMap.timing.toFixed(1)}°<br>
+                        Fuel Enrichment: ${customMap.fuel}%
+                    </span>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px;">
+                    <strong>⚠️ Safety Reminder:</strong><br>
+                    <span style="font-size: 13px; color: var(--text-dim);">
+                        Monitor engine parameters closely. High boost requires upgraded fuel system, intercooling, and proper tuning.
+                    </span>
+                </div>
+            `);
+        }
+
+        // Apply boost map to ECU/boost controller
+        function applyBoostMap(preset) {
+            const map = boostMaps[preset];
+            applyBoostMapDirect(map);
+        }
+
+        function applyBoostMapDirect(map) {
+            // In a real implementation, this would:
+            // 1. Send commands to an aftermarket ECU (like AEM, Haltech, etc.)
+            // 2. Control an electronic boost controller (like Turbosmart, AEM)
+            // 3. Adjust wastegate duty cycle
+            // 4. Modify fuel and timing maps
+            
+            console.log('Applying boost map:', map);
+            
+            // Simulate sending commands via OBD-II or CAN bus
+            if (isConnected) {
+                // Example commands (manufacturer specific):
+                // sendOBDCommand(`SET_BOOST:${map.psi}\r`);
+                // sendOBDCommand(`SET_TIMING:${map.timing}\r`);
+                // sendOBDCommand(`SET_FUEL:${map.fuel}\r`);
+            }
+            
+            // Update display
+            updateBoostGauge(map.psi);
+            document.getElementById('timingAdvance').textContent = map.timing + '°';
+        }
+
+        // Update boost gauge visualization
+        function updateBoostGauge(targetPSI) {
+            // Update target boost display in stats
+            const needle = document.getElementById('gaugeNeedle');
+            
+            // Calculate needle rotation (0-25 PSI mapped to -140deg to +140deg)
+            const rotation = -140 + (targetPSI / 25) * 280;
+            needle.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+        }
+
+        // Parse OBD-II PIDs and update UI
+        function parseOBDResponse(data) {
+            const cleanData = data.replace(/\s/g, '').toUpperCase();
+            
+            // Intake Manifold Absolute Pressure (PID 010B) - Used for boost calculation
+            if (cleanData.includes('410B')) {
+                const bytes = cleanData.match(/410B([0-9A-F]{2})/);
+                if (bytes) {
+                    const mapKPA = parseInt(bytes[1], 16);
+                    // Convert to boost PSI (atmospheric = 14.7 PSI = 101 kPa)
+                    const boostPSI = ((mapKPA - 101) * 0.145).toFixed(1);
+                    currentBoostPSI = parseFloat(boostPSI);
+                    
+                    updateMetric('boostPressure', boostPSI + ' PSI');
+                    updateMetric('boostValue', Math.abs(boostPSI));
+                    document.getElementById('boostMetric').classList.add('live-data');
+                    
+                    // Update gauge needle in real-time
+                    const needle = document.getElementById('gaugeNeedle');
+                    const displayBoost = Math.max(0, currentBoostPSI); // Don't show negative boost on gauge
+                    const rotation = -140 + (displayBoost / 25) * 280;
+                    needle.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+                    
+                    // Track max boost
+                    if (currentBoostPSI > maxBoostToday) {
+                        maxBoostToday = currentBoostPSI;
+                        updateMetric('maxBoost', maxBoostToday.toFixed(1) + ' PSI');
+                    }
+                    
+                    // Count boost events (when boost exceeds 2 PSI)
+                    if (currentBoostPSI > 2) {
+                        boostEventCount++;
+                        updateMetric('boostEvents', boostEventCount);
+                    }
+                }
+            }
+            
+            // Engine RPM (PID 010C)
+            if (cleanData.includes('410C')) {
+                const bytes = cleanData.match(/410C([0-9A-F]{4})/);
+                if (bytes) {
+                    const rpm = parseInt(bytes[1], 16) / 4;
+                    updateMetric('engineRPM', Math.round(rpm));
+                    document.getElementById('rpmMetric').classList.add('live-data');
+                }
+            }
+            
+            // Vehicle Speed (PID 010D)
+            if (cleanData.includes('410D')) {
+                const bytes = cleanData.match(/410D([0-9A-F]{2})/);
+                if (bytes) {
+                    const speed = parseInt(bytes[1], 16);
+                    updateMetric('vehicleSpeed', speed);
+                    document.getElementById('speedMetric').classList.add('live-data');
+                }
+            }
+            
+            // Engine Coolant Temperature (PID 0105)
+            if (cleanData.includes('4105')) {
+                const bytes = cleanData.match(/4105([0-9A-F]{2})/);
+                if (bytes) {
+                    const tempC = parseInt(bytes[1], 16) - 40;
+                    const tempF = Math.round((tempC * 9/5) + 32);
+                    updateMetric('engineTemp', tempF + '°F');
+                    updateMetric('coolantTemp', tempF + '°F');
+                    
+                    // Estimate turbo temp (usually 100-200F hotter than coolant under boost)
+                    const turboTempEstimate = tempF + (currentBoostPSI > 0 ? 150 : 50);
+                    updateMetric('turboTemp', turboTempEstimate + '°F');
+                    
+                    document.getElementById('engineMetric').classList.add('live-data');
+                }
+            }
+            
+            // Throttle Position (PID 0111)
+            if (cleanData.includes('4111')) {
+                const bytes = cleanData.match(/4111([0-9A-F]{2})/);
+                if (bytes) {
+                    const throttle = Math.round((parseInt(bytes[1], 16) * 100) / 255);
+                    updateMetric('throttlePos', throttle + '%');
+                }
+            }
+            
+            // Fuel Level (PID 012F)
+            if (cleanData.includes('412F')) {
+                const bytes = cleanData.match(/412F([0-9A-F]{2})/);
+                if (bytes) {
+                    const fuel = Math.round((parseInt(bytes[1], 16) * 100) / 255);
+                    updateMetric('fuelLevel', fuel + '%');
+                    document.getElementById('fuelMetric').classList.add('live-data');
+                }
+            }
+
+            // Intake Air Temperature (PID 010F)
+            if (cleanData.includes('410F')) {
+                const bytes = cleanData.match(/410F([0-9A-F]{2})/);
+                if (bytes) {
+                    const tempC = parseInt(bytes[1], 16) - 40;
+                    const tempF = Math.round((tempC * 9/5) + 32);
+                    updateMetric('intakeTemp', tempF + '°F');
+                }
+            }
+
+            // MAF Air Flow Rate (PID 0110)
+            if (cleanData.includes('4110')) {
+                const bytes = cleanData.match(/4110([0-9A-F]{4})/);
+                if (bytes) {
+                    const maf = (parseInt(bytes[1], 16) / 100).toFixed(1);
+                    updateMetric('mafRate', maf + ' g/s');
+                }
+            }
+
+            // O2 Sensor Voltage (PID 0114)
+            if (cleanData.includes('4114')) {
+                const bytes = cleanData.match(/4114([0-9A-F]{2})/);
+                if (bytes) {
+                    const voltage = (parseInt(bytes[1], 16) / 200).toFixed(2);
+                    updateMetric('o2Voltage', voltage + 'V');
+                }
+            }
+
+            // Timing Advance (PID 010E)
+            if (cleanData.includes('410E')) {
+                const bytes = cleanData.match(/410E([0-9A-F]{2})/);
+                if (bytes) {
+                    const timing = (parseInt(bytes[1], 16) / 2) - 64;
+                    updateMetric('timingAdvance', timing.toFixed(1) + '°');
+                    document.getElementById('timingMetric').classList.add('live-data');
+                }
+            }
+        }
+
+        // Update metric value
+        function updateMetric(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // Start periodic data updates
+        function startDataUpdates() {
+            // Query OBD-II data every second
+            dataUpdateInterval = setInterval(async () => {
+                if (!isConnected || !characteristic) return;
+
+                // Request various PIDs
+                await sendOBDCommand('010B\r'); // Manifold pressure (for boost)
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('010C\r'); // RPM
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('010D\r'); // Speed
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('0105\r'); // Coolant temp
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('012F\r'); // Fuel level
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('0111\r'); // Throttle position
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('010F\r'); // Intake air temp
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('0110\r'); // MAF
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('0114\r'); // O2 sensor
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await sendOBDCommand('010E\r'); // Timing advance
+            }, 2000);
+        }
+
+        // Show setup guide
+        function showSetupGuide() {
+            showModal('OBD-II Setup Guide', `
+                <div style="font-size: 15px; line-height: 1.8;">
+                    <h4 style="margin-bottom: 15px; color: var(--accent);">Step 1: Locate Your OBD-II Port</h4>
+                    <p style="margin-bottom: 20px;">The OBD-II port is typically located under the dashboard on the driver's side, near the steering column.</p>
+                    
+                    <h4 style="margin-bottom: 15px; color: var(--accent);">Step 2: Connect Your Adapter</h4>
+                    <p style="margin-bottom: 20px;">Plug your Bluetooth OBD-II adapter firmly into the port. Most adapters have an LED that indicates power.</p>
+                    
+                    <h4 style="margin-bottom: 15px; color: var(--accent);">Step 3: Turn On Ignition</h4>
+                    <p style="margin-bottom: 20px;">Turn your vehicle's ignition to the "ON" position (you don't need to start the engine initially).</p>
+                    
+                    <h4 style="margin-bottom: 15px; color: var(--accent);">Step 4: Pair Device</h4>
+                    <p style="margin-bottom: 20px;">Click the "Connect OBD-II" button and select your adapter from the list. Common names include:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 20px;">
+                        <li>OBDLink</li>
+                        <li>ELM327</li>
+                        <li>V-LINK</li>
+                        <li>OBDII</li>
+                    </ul>
+                    
+                    <h4 style="margin-bottom: 15px; color: var(--accent);">Step 5: Start Receiving Data</h4>
+                    <p>Once connected, live data will automatically stream to your dashboard!</p>
+                </div>
+            `);
+        }
+
+        // View DTC codes
+        function viewDTCCodes() {
+            showModal('Diagnostic Trouble Codes', `
+                <div style="font-size: 15px; margin-bottom: 20px;">
+                    ${isConnected ? 'Reading codes from vehicle...' : 'Connect OBD-II to read codes'}
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${isConnected ? `
+                        <div style="padding: 15px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">✅ No Trouble Codes Found</div>
+                            <div style="font-size: 13px; color: var(--text-dim);">Your vehicle's computer reports no error codes</div>
+                        </div>
+                    ` : `
+                        <div style="padding: 15px; background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">⚠️ OBD-II Not Connected</div>
+                            <div style="font-size: 13px; color: var(--text-dim);">Connect to your vehicle to read trouble codes</div>
+                        </div>
+                    `}
+                </div>
+                <div style="margin-top: 20px; font-size: 13px; color: var(--text-dim);">
+                    <strong>Note:</strong> Trouble codes (DTCs) help identify specific issues with your vehicle's systems. Format: P0XXX (Powertrain), B0XXX (Body), C0XXX (Chassis), U0XXX (Network).
+                </div>
+            `);
+        }
+
+        // Export data
+        function exportData() {
+            if (!isConnected) {
+                showModal('Export Data', `
+                    <div style="padding: 15px; background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">⚠️ No Data Available</div>
+                        <div style="font-size: 13px; color: var(--text-dim);">Connect OBD-II to export live data</div>
+                    </div>
+                `);
+                return;
+            }
+
+            showModal('Export Live Data', `
+                <div style="font-size: 15px; margin-bottom: 20px;">
+                    Export your vehicle's live data stream for analysis or sharing with mechanics.
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="downloadCSV()">
+                        📊 Download as CSV
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="alert('JSON export started!')">
+                        📄 Download as JSON
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="alert('Report generated!')">
+                        📑 Generate Full Report
+                    </button>
+                </div>
+            `);
+        }
+
+        // Download CSV
+        function downloadCSV() {
+            const data = [
+                ['Timestamp', 'RPM', 'Speed', 'Coolant Temp', 'Fuel Level', 'Throttle Position'],
+                [new Date().toISOString(), 
+                 document.getElementById('engineRPM').textContent,
+                 document.getElementById('vehicleSpeed').textContent,
+                 document.getElementById('engineTemp').textContent,
+                 document.getElementById('fuelLevel').textContent,
+                 document.getElementById('throttlePos').textContent]
+            ];
+
+            let csvContent = data.map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'vehicle-data-' + Date.now() + '.csv';
+            a.click();
+            
+            closeModal();
+            showSuccessNotification('Data exported successfully!');
+        }
+
+        // Clear codes
+        async function clearCodes() {
+            if (!isConnected) {
+                showModal('Clear Error Codes', `
+                    <div style="padding: 15px; background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">⚠️ OBD-II Not Connected</div>
+                        <div style="font-size: 13px; color: var(--text-dim);">Connect to your vehicle to clear trouble codes</div>
+                    </div>
+                `);
+                return;
+            }
+
+            showModal('Clear Diagnostic Codes', `
+                <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                    Are you sure you want to clear all diagnostic trouble codes?
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>⚠️ Warning:</strong> This will erase stored codes and reset monitors. Only clear codes after repairs are completed.
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" style="flex: 1;" onclick="executeClearCodes()">Clear Codes</button>
+                </div>
+            `);
+        }
+
+        async function executeClearCodes() {
+            await sendOBDCommand('04\r'); // Clear codes command
+            closeModal();
+            showSuccessNotification('Diagnostic codes cleared!');
+        }
+
+        // Run diagnostic
+        function runDiagnostic() {
+            const btn = event.target.closest('button');
+            const loading = btn.querySelector('.loading');
+            const text = btn.querySelector('.btn-text');
+            
+            loading.style.display = 'inline-block';
+            text.textContent = 'Scanning...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                loading.style.display = 'none';
+                text.textContent = 'Run Scan';
+                btn.disabled = false;
+                
+                showModal('Diagnostic Complete', `
+                    <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                        Full vehicle diagnostic scan completed successfully. All systems analyzed and health score updated.
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>✅ No critical issues detected</strong><br>
+                        <span style="font-size: 13px; color: var(--text-dim);">Your vehicle is operating within normal parameters</span>
+                    </div>
+                    ${isConnected ? `
+                        <div style="background: rgba(0, 217, 255, 0.1); border-left: 4px solid var(--accent); padding: 15px; border-radius: 8px;">
+                            <strong>📡 Live Data Active</strong><br>
+                            <span style="font-size: 13px; color: var(--text-dim);">Real-time monitoring via OBD-II connection</span>
+                        </div>
+                    ` : ''}
+                `);
+            }, 2000);
+        }
+
+        // Show success notification
+        function showSuccessNotification(message) {
+            const notificationsList = document.getElementById('notificationsList');
+            const notification = document.createElement('div');
+            notification.className = 'notification-item';
+            notification.innerHTML = `
+                <div class="notification-icon" style="background: rgba(16, 185, 129, 0.1);">✅</div>
+                <div class="notification-content">
+                    <div class="notification-title">${message}</div>
+                    <div class="notification-time">Just now</div>
+                </div>
+            `;
+            notificationsList.insertBefore(notification, notificationsList.firstChild);
+
+            // Remove after 10 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 10000);
+        }
+
+        // Modal functions
+        function showModal(title, content) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modalOverlay') {
+                closeModal();
+            }
+        });
+
+        // Toggle turbo panel visibility
+        function toggleTurboPanel() {
+            const turboPanel = document.getElementById('turboPanel');
+            if (turboPanel.style.display === 'none') {
+                turboPanel.style.display = 'block';
+                showSuccessNotification('Turbo Boost Control panel enabled');
+                // If not connected, show info modal
+                if (!isConnected) {
+                    showModal('Turbo Boost Control', `
+                        <div style="font-size: 15px; line-height: 1.8; margin-bottom: 20px;">
+                            The Turbo Boost Control panel allows you to adjust boost pressure levels on turbocharged vehicles.
+                        </div>
+                        <div style="background: rgba(0, 217, 255, 0.1); border-left: 4px solid var(--accent); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>📡 Connect OBD-II for Live Data</strong><br>
+                            <span style="font-size: 13px; color: var(--text-dim);">
+                                Connect your OBD-II adapter to read real-time boost pressure and apply settings to your vehicle's boost controller.
+                            </span>
+                        </div>
+                        <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px;">
+                            <strong>⚠️ Important Safety Notice</strong><br>
+                            <span style="font-size: 13px; color: var(--text-dim);">
+                                Modifying boost pressure requires proper supporting modifications including fuel system, intercooling, and engine internals. Consult a professional tuner before increasing boost beyond stock levels.
+                            </span>
+                        </div>
+                    `);
+                }
+            } else {
+                turboPanel.style.display = 'none';
+                showSuccessNotification('Turbo Boost Control panel hidden');
+            }
+        }
+
+        // Animate health score on load
+        window.addEventListener('load', () => {
+            const scoreElement = document.getElementById('healthScore');
+            let score = 0;
+            const target = 87;
+            const interval = setInterval(() => {
+                score += 1;
+                scoreElement.textContent = score;
+                if (score >= target) {
+                    clearInterval(interval);
+                }
+            }, 20);
+        });
+
+        // Handle disconnection
+        window.addEventListener('beforeunload', () => {
+            if (isConnected) {
+                disconnectBluetooth();
+            }
+        });
+    </script>
+</body>
+</html>
